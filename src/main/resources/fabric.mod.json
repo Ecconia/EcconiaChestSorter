@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "ecconia-chest-sorter",
+  "version": "${version}",
+  "name": "Ecconia's Chest Sorter",
+  "description": "Sorts chests by ID on key press.",
+  "authors": [
+    "Ecconia"
+  ],
+  "contact": {
+    "sources": "https://github.com/Ecconia/EcconiaChestSorter",
+    "issues": "https://github.com/Ecconia/EcconiaChestSorter/issues"
+  },
+  "license": "GPLv3",
+  "icon": "assets/ecconia-chest-sorter/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "de.ecconia.fabric.chestsorter.ChestSorter"
+    ]
+  },
+  "mixins": [
+    "ecconia-chest-sorter.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.9",
+    "fabric-api": "*",
+    "minecraft": "~1.19",
+    "java": ">=17",
+    "fabric-key-binding-api-v1": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
