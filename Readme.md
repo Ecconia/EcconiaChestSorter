@@ -2,7 +2,7 @@
 
 ## For?
 
-Minecraft Fabric 1.19.2\
+Minecraft Fabric 1.20.1\
 Also requires the Fabric-API.
 
 ## What does it do?
@@ -19,7 +19,7 @@ This mod runs on the client fully. It does not need a server mod.
 
 ## Warning, hacking?
 
-Currently this mod will spam slot interaction packets to the server (one for each simulated mouse-click).\
+Currently, this mod will spam slot interaction packets to the server (one for each simulated mouse-click).\
 A vanilla server and Spigot do not seem to mind this.\
 But if the server has an anti-cheat protection, this mod will not try to hide the automation.
 
