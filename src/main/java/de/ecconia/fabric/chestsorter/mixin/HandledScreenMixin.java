@@ -12,6 +12,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ShulkerBoxScreenHandler;
 import net.minecraft.screen.slot.Slot;
@@ -58,7 +59,17 @@ public abstract class HandledScreenMixin extends Screen
 		
 		//Grab the right inventory, depending on the screen type:
 		Inventory inventory;
-		if(screenHandler instanceof GenericContainerScreenHandler)
+		//Set start and end slot. By default, all slots of an inventory will be sorted.
+		int start = 0; //First slot (lower)
+		int end = -1; //Last slot (higher) Exclusive!
+		if(screenHandler == player.playerScreenHandler)
+		{
+			inventory = player.getInventory(); //Not used, but let's set it in case.
+			//The player inventory has multiple inventory sections, only sort the 3 main rows:
+			start = PlayerScreenHandler.INVENTORY_START;
+			end = PlayerScreenHandler.INVENTORY_END;
+		}
+		else if(screenHandler instanceof GenericContainerScreenHandler)
 		{
 			inventory = ((GenericContainerScreenHandler) screenHandler).getInventory();
 		}
@@ -70,11 +81,16 @@ public abstract class HandledScreenMixin extends Screen
 		{
 			return; //No inventory here, or unsupported inventory.
 		}
+		//The end index was not overwritten, hence the whole inventory has to be sorted:
+		if(end < 0)
+		{
+			end = inventory.size();
+		}
 		
 		//The sorting code uses API code, that might not be fully safe. Let's be safe and try to catch anything:
 		try
 		{
-			sort(screenHandler, inventory, screenHandler.slots);
+			sort(screenHandler, screenHandler.slots, start, end);
 		}
 		catch(Throwable t)
 		{
@@ -86,11 +102,11 @@ public abstract class HandledScreenMixin extends Screen
 		callbackInfoReturnable.setReturnValue(true);
 	}
 	
-	private void sort(ScreenHandler handler, Inventory inventory, List<Slot> slots)
+	private void sort(ScreenHandler handler, List<Slot> slots, int startIndex, int endIndex)
 	{
 		//Collect all items that are currently in the relevant inventory slots:
 		List<SlotItemStack> items = new ArrayList<>();
-		for(int i = 0; i < inventory.size(); i++)
+		for(int i = startIndex; i < endIndex; i++)
 		{
 			Slot slot = slots.get(i);
 			if(slot.hasStack())
@@ -103,7 +119,7 @@ public abstract class HandledScreenMixin extends Screen
 		Collections.sort(items);
 		
 		Slot slotLastInsertedTo = null; //Stores the last filled slot, to add more items onto it, if possible.
-		int nextSlotIndex = 0; //The inventory is filled from the beginning to the last slot. This is the index of the next slot to fill.
+		int nextSlotIndex = startIndex; //The inventory is filled from the beginning to the last slot. This is the index of the next slot to fill.
 		//Iterate over the sorted items, so that they will be in the correct order:
 		for(SlotItemStack toBeSorted : items)
 		{
