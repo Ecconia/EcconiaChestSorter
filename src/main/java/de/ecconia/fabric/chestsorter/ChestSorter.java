@@ -14,10 +14,10 @@ public class ChestSorter implements ClientModInitializer
 	public void onInitializeClient()
 	{
 		keyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-				"ecconia-chest-sorter.translation.hot-key",
-				InputUtil.Type.KEYSYM,
-				GLFW.GLFW_KEY_R,
-				"ecconia-chest-sorter.category"
+			"ecconia-chest-sorter.translation.hot-key",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_R,
+			"ecconia-chest-sorter.category"
 		));
 	}
 }
