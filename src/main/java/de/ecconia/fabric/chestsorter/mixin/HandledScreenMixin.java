@@ -164,6 +164,7 @@ public abstract class HandledScreenMixin extends Screen
 					if(sis.currentSlot == slotToInsertInto)
 					{
 						sis.currentSlot = slotToTakeFrom;
+						break; //Found the correct slot.
 					}
 				}
 			}
