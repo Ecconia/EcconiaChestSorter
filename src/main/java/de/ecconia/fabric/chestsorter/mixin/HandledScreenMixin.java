@@ -121,8 +121,9 @@ public abstract class HandledScreenMixin extends Screen
 		Slot slotLastInsertedTo = null; //Stores the last filled slot, to add more items onto it, if possible.
 		int nextSlotIndex = startIndex; //The inventory is filled from the beginning to the last slot. This is the index of the next slot to fill.
 		//Iterate over the sorted items, so that they will be in the correct order:
-		for(SlotItemStack toBeSorted : items)
+		for(int i = 0; i < items.size(); i++)
 		{
+			SlotItemStack toBeSorted = items.get(i);
 			boolean didNotYetTakeFromSlotToTakeFrom = true; //The item might be picked up at multiple points in code, this stores if it still has to be picked up.
 			Slot slotToTakeFrom = toBeSorted.currentSlot;
 			
@@ -175,11 +176,15 @@ public abstract class HandledScreenMixin extends Screen
 				//Put leftover items into the slot of the original to-be-sorted item, as that slot is reliably empty right now:
 				click(slotToTakeFrom);
 				//Find the to-be-sorted item stack, that was just relocated in the list of to-be-sorted item stacks and update its slot index to the new slot:
-				for(SlotItemStack sis : items)
+				for(int j = i + 1; j < items.size(); j++)
 				{
-					if(sis.currentSlot == slotToInsertInto)
+					//Skip all items that are already sorted (start at 'i'), including the one for this run ('+1').
+					// Skipped items must be skipped, as they might cause the following condition to become true,
+					//  then the optimization of early breaking does not work anymore.
+					var itemToStillBeSorted = items.get(j);
+					if(itemToStillBeSorted.currentSlot == slotToInsertInto)
 					{
-						sis.currentSlot = slotToTakeFrom;
+						itemToStillBeSorted.currentSlot = slotToTakeFrom;
 						break; //Found the correct slot.
 					}
 				}
