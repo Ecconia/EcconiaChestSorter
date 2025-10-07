@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "de.ecconia.fabric.chestsorter.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"HandledScreenMixin",
+		"ShulkerInventoryMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

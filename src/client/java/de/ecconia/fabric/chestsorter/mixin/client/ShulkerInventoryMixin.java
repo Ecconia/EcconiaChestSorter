@@ -1,4 +1,4 @@
-package de.ecconia.fabric.chestsorter.mixin;
+package de.ecconia.fabric.chestsorter.mixin.client;
 
 import net.minecraft.inventory.Inventory;
 import net.minecraft.screen.ShulkerBoxScreenHandler;

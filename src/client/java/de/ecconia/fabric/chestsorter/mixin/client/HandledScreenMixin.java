@@ -1,4 +1,4 @@
-package de.ecconia.fabric.chestsorter.mixin;
+package de.ecconia.fabric.chestsorter.mixin.client;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,6 +20,7 @@ import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -95,13 +96,14 @@ public abstract class HandledScreenMixin extends Screen
 		catch(Throwable t)
 		{
 			t.printStackTrace();
-			client.player.sendMessage(Text.literal("$aError while sorting chest."));
+			client.player.sendMessage(Text.literal("$aError while sorting chest."), false);
 		}
 		
 		//Prevent further processing of this input event, it is consumed by this mod:
 		callbackInfoReturnable.setReturnValue(true);
 	}
 	
+	@Unique
 	private void sort(ScreenHandler handler, List<Slot> slots, int startIndex, int endIndex)
 	{
 		//Collect all items that are currently in the relevant inventory slots:
@@ -133,7 +135,7 @@ public abstract class HandledScreenMixin extends Screen
 				ItemStack lastItemStack = slotLastInsertedTo.getStack();
 				ItemStack newItemStack = slotToTakeFrom.getStack();
 				//Check if the items can be inserted onto the last slot:
-				if(ItemStack.canCombine(lastItemStack, newItemStack)
+				if(ItemStack.areItemsAndComponentsEqual(lastItemStack, newItemStack)
 					&& lastItemStack.getCount() <= lastItemStack.getMaxCount())
 				{
 					click(slotToTakeFrom);
@@ -192,6 +194,7 @@ public abstract class HandledScreenMixin extends Screen
 		}
 	}
 	
+	@Unique
 	private void click(Slot slot)
 	{
 		onMouseClick(slot, 0, 0, SlotActionType.PICKUP);
