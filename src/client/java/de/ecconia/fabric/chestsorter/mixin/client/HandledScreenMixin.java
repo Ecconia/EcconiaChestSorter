@@ -1,4 +1,4 @@
-package de.ecconia.fabric.chestsorter.mixin;
+package de.ecconia.fabric.chestsorter.mixin.client;
 
 import java.util.ArrayList;
 import java.util.Collections;
