@@ -8,6 +8,7 @@ import de.ecconia.fabric.chestsorter.ChestSorter;
 import de.ecconia.fabric.chestsorter.SlotItemStack;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
@@ -37,13 +38,13 @@ public abstract class HandledScreenMixin extends Screen
 	}
 	
 	@Inject(at = @At("HEAD"), method = "keyPressed", cancellable = true)
-	private void chestSorter$keyPressed(int keycode, int scancode, int modifiers, CallbackInfoReturnable<Boolean> callbackInfoReturnable)
+	private void chestSorter$keyPressed(KeyInput input, CallbackInfoReturnable<Boolean> callbackInfoReturnable)
 	{
 		if(client == null || client.player == null || client.interactionManager == null)
 		{
 			return; //Precaution, just stop here.
 		}
-		if(!ChestSorter.keyBinding.matchesKey(keycode, scancode))
+		if(!ChestSorter.keyBinding.matchesKey(input))
 		{
 			return; //Keybinding not pressed, nothing to do.
 		}

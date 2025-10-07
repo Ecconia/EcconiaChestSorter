@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class ChestSorter implements ClientModInitializer
@@ -17,7 +18,7 @@ public class ChestSorter implements ClientModInitializer
 			"ecconia-chest-sorter.translation.hot-key",
 			InputUtil.Type.KEYSYM,
 			GLFW.GLFW_KEY_R,
-			"ecconia-chest-sorter.category"
+			KeyBinding.Category.create(Identifier.of("ecconia-chest-sorter"))
 		));
 	}
 }
