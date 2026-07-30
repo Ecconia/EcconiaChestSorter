@@ -6,19 +6,19 @@ import java.util.List;
 
 import de.ecconia.fabric.chestsorter.ChestSorter;
 import de.ecconia.fabric.chestsorter.SlotItemStack;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.PlayerScreenHandler;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.ShulkerBoxScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.ShulkerBoxMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -26,178 +26,123 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(HandledScreen.class)
-public abstract class HandledScreenMixin extends Screen
-{
+@Mixin(AbstractContainerScreen.class)
+public abstract class HandledScreenMixin extends Screen {
+
 	@Shadow
-	protected abstract void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType);
-	
-	protected HandledScreenMixin(Text title)
-	{
+	protected abstract void slotClicked(Slot slot, int slotId, int mouseButton, ContainerInput clickType);
+
+	protected HandledScreenMixin(Component title) {
 		super(title);
 	}
-	
+
 	@Inject(at = @At("HEAD"), method = "keyPressed", cancellable = true)
-	private void chestSorter$keyPressed(KeyInput input, CallbackInfoReturnable<Boolean> callbackInfoReturnable)
-	{
-		if(client == null || client.player == null || client.interactionManager == null)
-		{
-			return; //Precaution, just stop here.
+	private void chestSorter$keyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
+		if (this.minecraft == null || this.minecraft.player == null || this.minecraft.gameMode == null) {
+			return; // Precaution, just stop here.
 		}
-		if(!ChestSorter.keyBinding.matchesKey(input))
-		{
-			return; //Keybinding not pressed, nothing to do.
+		if (!ChestSorter.keyBinding.matches(event)) {
+			return; // Keybinding not pressed, nothing to do.
 		}
-		ClientPlayerEntity player = client.player;
-		ScreenHandler screenHandler = player.currentScreenHandler; //The screen handler of the current open window.
-		if(screenHandler == null || !screenHandler.canUse(player))
-		{
-			return; //Not a relevant screen handler, skip it.
+
+		LocalPlayer player = this.minecraft.player;
+		AbstractContainerMenu containerMenu = player.containerMenu; // Current open window menu
+		if (containerMenu == null || !containerMenu.stillValid(player)) {
+			return; // Not a relevant menu, skip it.
 		}
-		if(!screenHandler.getCursorStack().isEmpty())
-		{
-			return; //Player is holding an item in the hand. This would break the sorting algorithm. It relies on the hand being free.
+		if (!containerMenu.getCarried().isEmpty()) {
+			return; // Player is holding an item in the hand.
 		}
-		
-		//Grab the right inventory, depending on the screen type:
-		Inventory inventory;
-		//Set start and end slot. By default, all slots of an inventory will be sorted.
-		int start = 0; //First slot (lower)
-		int end = -1; //Last slot (higher) Exclusive!
-		if(screenHandler == player.playerScreenHandler)
-		{
-			inventory = player.getInventory(); //Not used, but let's set it in case.
-			//The player inventory has multiple inventory sections, only sort the 3 main rows:
-			start = PlayerScreenHandler.INVENTORY_START;
-			end = PlayerScreenHandler.INVENTORY_END;
+
+		// Grab the right container, depending on the screen type:
+		Container container;
+		int start = 0; // First slot
+		int end = -1; // Last slot (Exclusive)
+
+		if (containerMenu == player.inventoryMenu) {
+			container = player.getInventory();
+			start = InventoryMenu.INV_SLOT_START;
+			end = InventoryMenu.INV_SLOT_END;
+		} else if (containerMenu instanceof ChestMenu chestMenu) {
+			container = chestMenu.getContainer();
+		} else if (containerMenu instanceof ShulkerBoxMenu shulkerBoxMenu) {
+			container = ((ShulkerInventoryMixin) shulkerBoxMenu).getContainer();
+		} else {
+			return; // No container here, or unsupported screen.
 		}
-		else if(screenHandler instanceof GenericContainerScreenHandler)
-		{
-			inventory = ((GenericContainerScreenHandler) screenHandler).getInventory();
+
+		if (end < 0) {
+			end = container.getContainerSize();
 		}
-		else if(screenHandler instanceof ShulkerBoxScreenHandler)
-		{
-			inventory = ((ShulkerInventoryMixin) screenHandler).getInventory();
-		}
-		else
-		{
-			return; //No inventory here, or unsupported inventory.
-		}
-		//The end index was not overwritten, hence the whole inventory has to be sorted:
-		if(end < 0)
-		{
-			end = inventory.size();
-		}
-		
-		//The sorting code uses API code, that might not be fully safe. Let's be safe and try to catch anything:
-		try
-		{
-			sort(screenHandler, screenHandler.slots, start, end);
-		}
-		catch(Throwable t)
-		{
+
+		try {
+			sort(containerMenu, containerMenu.slots, start, end);
+		} catch (Throwable t) {
 			t.printStackTrace();
-			client.player.sendMessage(Text.literal("$aError while sorting chest."), false);
+			player.sendSystemMessage(Component.literal("§aError while sorting chest."));
 		}
-		
-		//Prevent further processing of this input event, it is consumed by this mod:
+
 		callbackInfoReturnable.setReturnValue(true);
 	}
-	
+
 	@Unique
-	private void sort(ScreenHandler handler, List<Slot> slots, int startIndex, int endIndex)
-	{
-		//Collect all items that are currently in the relevant inventory slots:
+	private void sort(AbstractContainerMenu menu, List<Slot> slots, int startIndex, int endIndex) {
 		List<SlotItemStack> items = new ArrayList<>();
-		for(int i = startIndex; i < endIndex; i++)
-		{
+		for (int i = startIndex; i < endIndex; i++) {
 			Slot slot = slots.get(i);
-			if(slot.hasStack())
-			{
+			if (slot.hasItem()) {
 				items.add(new SlotItemStack(slot));
 			}
 		}
-		
-		//Sort the list of present items:
+
 		Collections.sort(items);
-		
-		Slot slotLastInsertedTo = null; //Stores the last filled slot, to add more items onto it, if possible.
-		int nextSlotIndex = startIndex; //The inventory is filled from the beginning to the last slot. This is the index of the next slot to fill.
-		//Iterate over the sorted items, so that they will be in the correct order:
-		for(int i = 0; i < items.size(); i++)
-		{
+
+		Slot slotLastInsertedTo = null;
+		int nextSlotIndex = startIndex;
+
+		for (int i = 0; i < items.size(); i++) {
 			SlotItemStack toBeSorted = items.get(i);
-			boolean didNotYetTakeFromSlotToTakeFrom = true; //The item might be picked up at multiple points in code, this stores if it still has to be picked up.
+			boolean didNotYetTakeFromSlotToTakeFrom = true;
 			Slot slotToTakeFrom = toBeSorted.currentSlot;
-			
-			//Try to add more items onto the last slot:
-			if(slotLastInsertedTo != null)
-			{
-				ItemStack lastItemStack = slotLastInsertedTo.getStack();
-				ItemStack newItemStack = slotToTakeFrom.getStack();
-				//Check if the items can be inserted onto the last slot:
-				if(ItemStack.areItemsAndComponentsEqual(lastItemStack, newItemStack)
-					&& lastItemStack.getCount() <= lastItemStack.getMaxCount())
-				{
+
+			if (slotLastInsertedTo != null) {
+				ItemStack lastItemStack = slotLastInsertedTo.getItem();
+				ItemStack newItemStack = slotToTakeFrom.getItem();
+
+				if (ItemStack.isSameItemSameComponents(lastItemStack, newItemStack)
+						&& lastItemStack.getCount() <= lastItemStack.getMaxStackSize()) {
 					click(slotToTakeFrom);
 					click(slotLastInsertedTo);
-					if(handler.getCursorStack().isEmpty())
-					{
-						continue; //All items dumped onto the last slot, continue without using a new slot.
+					if (menu.getCarried().isEmpty()) {
+						continue;
 					}
 					didNotYetTakeFromSlotToTakeFrom = false;
 				}
 			}
-			
-			//Sort into a new target slot:
+
 			Slot slotToInsertInto = slots.get(nextSlotIndex++);
-			slotLastInsertedTo = slotToInsertInto; //Remember the last slot, for trying to add the next item stack onto it.
-			//Previous stack merging code might have already picked up the item, if not pick it up now:
-			if(didNotYetTakeFromSlotToTakeFrom)
-			{
+			slotLastInsertedTo = slotToInsertInto;
+
+			if (didNotYetTakeFromSlotToTakeFrom) {
 				click(slotToTakeFrom);
 			}
 			click(slotToInsertInto);
-			
-			/*
-				At this point, there might still be items in the hand. This is because either:
-				 - The slot to insert into had a different item.
-					Which means, that the whole target slot is now in the hand and must be moved somewhere else.
-				 - The slot to insert into had the same item, but not enough space.
-					Which means, we might still hold the same stack with fewer items,
-					 but we can pretend we are now holding the stack that was in the target slot.
-					 As the item count does not matter for this algorithm (when not merging stacks).
-				
-				In either case the items we took will be inserted back into the slot they got taken from.
-				As per sort algorithm design, we never insert into or take from a slot that is already done being sorted.
-				 The only exception is when the last slot is reused, but at this point the hand contains items that are from an unsorted slot.
-				That is why it is possible to put back the item, as that is also an unsorted slot.
-				However, in that case, we are changing the slot of a to-be-sorted item stack -> it must be updated.
-			 */
-			if(!handler.getCursorStack().isEmpty())
-			{
-				//Put leftover items into the slot of the original to-be-sorted item, as that slot is reliably empty right now:
+
+			if (!menu.getCarried().isEmpty()) {
 				click(slotToTakeFrom);
-				//Find the to-be-sorted item stack, that was just relocated in the list of to-be-sorted item stacks and update its slot index to the new slot:
-				for(int j = i + 1; j < items.size(); j++)
-				{
-					//Skip all items that are already sorted (start at 'i'), including the one for this run ('+1').
-					// Skipped items must be skipped, as they might cause the following condition to become true,
-					//  then the optimization of early breaking does not work anymore.
+				for (int j = i + 1; j < items.size(); j++) {
 					var itemToStillBeSorted = items.get(j);
-					if(itemToStillBeSorted.currentSlot == slotToInsertInto)
-					{
+					if (itemToStillBeSorted.currentSlot == slotToInsertInto) {
 						itemToStillBeSorted.currentSlot = slotToTakeFrom;
-						break; //Found the correct slot.
+						break;
 					}
 				}
 			}
 		}
 	}
-	
+
 	@Unique
-	private void click(Slot slot)
-	{
-		onMouseClick(slot, 0, 0, SlotActionType.PICKUP);
+	private void click(Slot slot) {
+		slotClicked(slot, 0, 0, ContainerInput.PICKUP);
 	}
 }
