@@ -2,7 +2,7 @@
 
 ## For?
 
-Minecraft Fabric 1.21.10\
+Minecraft Fabric 26.2\
 Also requires the Fabric-API.
 
 ## What does it do?
